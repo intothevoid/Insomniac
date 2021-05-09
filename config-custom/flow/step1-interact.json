@@ -55,7 +55,7 @@
   },
   {
     "parameter-name": "repeat",
-    "enabled": true,
+    "enabled": false,
     "value": "120-360",
     "description" : "repeat the same session again after N minutes after completion, disabled by default. It can be a number of minutes (e.g. 180) or a range (e.g. 120-180)"
   },
@@ -87,7 +87,7 @@
   },
   {
     "parameter-name": "reinteract_after",
-    "enabled": false,
+    "enabled": true,
     "value": "72-96",
     "description" : "set a time (in hours) to wait before re-interact with an already interacted profile, disabled by default (won't interact again). It can be a number (e.g. 48) or a range (e.g. 50-80)"
   },
@@ -140,14 +140,15 @@
       "♥",
       "i really like this",
       "nice pic!",
-      "nice photo!"
+      "nice photo!",
+      "nice profile"
     ],
     "description" : "list of comments you wish to comment on posts during interaction"
   },
   {
     "parameter-name": "max_following",
     "enabled": true,
-    "value": "50",
+    "value": "25",
     "description" : "maximum amount of followings, after reaching this amount follow stops. disabled by default"
   },
   {

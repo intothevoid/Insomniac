@@ -55,20 +55,20 @@
   },
   {
     "parameter-name": "next_config_file",
-    "enabled": true,
+    "enabled": false,,
     "value": "step1-interact.json",
     "description" : "if you want to run multiple insomniac sessions one-by-one but with different parameters, for example - different action (interact and then unfollow), or same config but with different username, or any other variation of parameters you can think of, you can combine this parameter with the \"repeat\"-parameter, and after the sleep of the \"repeat\"-parameter, a new config file (referenced by this parameter) will be loaded. By default using the same config that been loaded in the first Insominac session. You must use \"repeat\"-parameter in order for that parameter take action!"
   },
   {
     "parameter-name": "repeat",
-    "enabled": true,
+    "enabled": false,,
     "value": "160-220",
     "description" : "repeat the same session again after N minutes after completion, disabled by default. It can be a number of minutes (e.g. 180) or a range (e.g. 120-180)"
   },
   {
     "parameter-name": "unfollow",
     "enabled": true,
-    "value": "20-40",
+    "value": "5-10",
     "description" : "unfollow at most given number of users. Only users followed by this script will be unfollowed. The order is from oldest to newest followings. It can be a number (e.g. 100) or a range (e.g. 100-200)"
   },
   {
