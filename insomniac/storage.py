@@ -5,7 +5,6 @@ from insomniac.database_engine import *
 from insomniac.db_models import get_ig_profile_by_profile_name, ProfileStatus
 import insomniac.db_models as insomniac_db
 from insomniac.utils import *
-from insomniac.globals import task_id, execution_id
 
 FILENAME_WHITELIST = "whitelist.txt"
 FILENAME_BLACKLIST = "blacklist.txt"
@@ -59,6 +58,7 @@ def database_api(func):
 
 
 class Storage:
+    my_username = None
     profile = None
     scrape_for_account_list = []
     recheck_follow_status_after = None
@@ -72,6 +72,7 @@ class Storage:
     def _reset_state(self):
         global IS_USING_DATABASE
         IS_USING_DATABASE = False
+        self.my_username = None
         self.profile = None
         self.scrape_for_account_list = []
         self.recheck_follow_status_after = None
@@ -94,6 +95,7 @@ class Storage:
         global IS_USING_DATABASE
         IS_USING_DATABASE = True
 
+        self.my_username = my_username
         self.profile = get_ig_profile_by_profile_name(my_username)
         scrape_for_account = args.__dict__.get('scrape_for_account', [])
         self.scrape_for_account_list = scrape_for_account if isinstance(scrape_for_account, list) else [scrape_for_account]
@@ -109,17 +111,30 @@ class Storage:
         blacklist_from_parameters = args.__dict__.get('blacklist_profiles', None)
 
         # Whitelist and Blacklist
-        try:
-            with open(FILENAME_WHITELIST, encoding="utf-8") as file:
-                self.whitelist = [line.rstrip() for line in file]
-        except FileNotFoundError:
-            print_debug("No whitelist provided")
 
-        try:
-            with open(FILENAME_BLACKLIST, encoding="utf-8") as file:
-                self.blacklist = [line.rstrip() for line in file]
-        except FileNotFoundError:
-            print_debug("No blacklist provided")
+        whitelist_files = {
+            FILENAME_WHITELIST: "global-whitelist",
+            f"{self.my_username}-{FILENAME_WHITELIST}": "profile-whitelist"
+        }
+
+        blacklist_files = {
+            FILENAME_BLACKLIST: "global-blacklist",
+            f"{self.my_username}-{FILENAME_BLACKLIST}": "profile-blacklist"
+        }
+
+        for file_path, file_desc in whitelist_files.items():
+            try:
+                with open(file_path, encoding="utf-8") as file:
+                    self.whitelist.extend([line.rstrip() for line in file if not line.startswith("#")])
+            except FileNotFoundError:
+                print_debug(f"No {file_desc} file provided")
+
+        for file_path, file_desc in blacklist_files.items():
+            try:
+                with open(file_path, encoding="utf-8") as file:
+                    self.blacklist.extend([line.rstrip() for line in file if not line.startswith("#")])
+            except FileNotFoundError:
+                print_debug(f"No {file_desc} file provided")
 
         if whitelist_from_parameters is not None:
             if isinstance(whitelist_from_parameters, list) and len(whitelist_from_parameters) > 0:
@@ -172,7 +187,10 @@ class Storage:
     def get_following_status(self, username):
         if not self.profile.used_to_follow(username):
             return FollowingStatus.NONE
-        return FollowingStatus.FOLLOWED if self.profile.do_i_follow(username) else FollowingStatus.UNFOLLOWED
+        do_i_follow = self.profile.do_i_follow(username)
+        if do_i_follow is None:
+            return FollowingStatus.NONE
+        return FollowingStatus.FOLLOWED if do_i_follow else FollowingStatus.UNFOLLOWED
 
     @database_api
     def is_profile_follows_me_by_cache(self, username):
@@ -185,48 +203,55 @@ class Storage:
         return self.profile.is_follow_me(username, hours=self.recheck_follow_status_after) is True
 
     @database_api
-    def update_follow_status(self, username, is_follow_me, do_i_follow_him):
+    def update_follow_status(self, username, is_follow_me=None, do_i_follow_him=None):
+        if is_follow_me is None and do_i_follow_him is None:
+            print(COLOR_FAIL + "Provide either is_follow_me or do_i_follow_him or both in update_follow_status()!")
+            return
+        if is_follow_me is None:
+            is_follow_me = self.profile.is_follow_me(username)
+        if do_i_follow_him is None:
+            do_i_follow_him = self.profile.do_i_follow(username)
         self.profile.update_follow_status(username, is_follow_me, do_i_follow_him)
 
     @database_api
     def log_get_profile_action(self, session_id, username):
-        self.profile.log_get_profile_action(session_id, username, task_id, execution_id)
+        self.profile.log_get_profile_action(session_id, username)
 
     @database_api
     def log_like_action(self, session_id, username, source_type, source_name):
-        self.profile.log_like_action(session_id, username, source_type, source_name, task_id, execution_id)
+        self.profile.log_like_action(session_id, username, source_type, source_name)
 
     @database_api
     def log_follow_action(self, session_id, username, source_type, source_name):
-        self.profile.log_follow_action(session_id, username, source_type, source_name, task_id, execution_id)
+        self.profile.log_follow_action(session_id, username, source_type, source_name)
 
     @database_api
     def log_story_watch_action(self, session_id, username, source_type, source_name):
-        self.profile.log_story_watch_action(session_id, username, source_type, source_name, task_id, execution_id)
+        self.profile.log_story_watch_action(session_id, username, source_type, source_name)
 
     @database_api
     def log_comment_action(self, session_id, username, comment, source_type, source_name):
-        self.profile.log_comment_action(session_id, username, comment, source_type, source_name, task_id, execution_id)
+        self.profile.log_comment_action(session_id, username, comment, source_type, source_name)
 
     @database_api
     def log_direct_message_action(self, session_id, username, message):
-        self.profile.log_direct_message_action(session_id, username, message, task_id, execution_id)
+        self.profile.log_direct_message_action(session_id, username, message)
 
     @database_api
     def log_unfollow_action(self, session_id, username):
-        self.profile.log_unfollow_action(session_id, username, task_id, execution_id)
+        self.profile.log_unfollow_action(session_id, username)
 
     @database_api
     def log_scrape_action(self, session_id, username, source_type, source_name):
-        self.profile.log_scrape_action(session_id, username, source_type, source_name, task_id, execution_id)
+        self.profile.log_scrape_action(session_id, username, source_type, source_name)
 
     @database_api
     def log_filter_action(self, session_id, username):
-        self.profile.log_filter_action(session_id, username, task_id, execution_id)
+        self.profile.log_filter_action(session_id, username)
 
     @database_api
     def log_change_profile_info_action(self, session_id, profile_pic_url, name, description):
-        self.profile.log_change_profile_info_action(session_id, profile_pic_url, name, description, task_id, execution_id)
+        self.profile.log_change_profile_info_action(session_id, profile_pic_url, name, description)
 
     @database_api
     def publish_scrapped_account(self, username):
@@ -280,32 +305,37 @@ class Storage:
         except IndexError:
             pass
 
-        # From file
-        try:
-            with open(FILENAME_TARGETS, "r+", encoding="utf-8") as file:
-                lines = [line.rstrip() for line in file]
+        targets_files = {
+            FILENAME_TARGETS: "global-targets",
+            f"{self.my_username}-{FILENAME_TARGETS}": "profile-targets"
+        }
 
-                for i, line in enumerate(lines):
-                    # Skip comments
-                    if line.startswith("#"):
-                        continue
+        for file_path, file_desc in targets_files.items():
+            try:
+                with open(file_path, "r+", encoding="utf-8") as file:
+                    lines = [line.rstrip() for line in file]
 
-                    # Skip already interacted
-                    if "DONE" in line:
-                        continue
+                    for i, line in enumerate(lines):
+                        # Skip comments
+                        if line.startswith("#"):
+                            continue
 
-                    data = line.strip()
-                    if data.startswith("https://"):
-                        target_type = TargetType.URL
-                    else:
-                        target_type = TargetType.USERNAME
-                    lines[i] += " - DONE"
-                    file.truncate(0)
-                    file.seek(0)
-                    file.write("\n".join(lines))
-                    return data, target_type
-        except FileNotFoundError:
-            pass
+                        # Skip already interacted
+                        if "DONE" in line:
+                            continue
+
+                        data = line.strip()
+                        if data.startswith("https://"):
+                            target_type = TargetType.URL
+                        else:
+                            target_type = TargetType.USERNAME
+                        lines[i] += " - DONE"
+                        file.truncate(0)
+                        file.seek(0)
+                        file.write("\n".join(lines))
+                        return data, target_type
+            except FileNotFoundError:
+                pass
 
         # From scrapping
         scrapped_profile = self.profile.get_scrapped_profile_for_interaction()
@@ -321,22 +351,30 @@ class Storage:
 
     def _count_targets_from_file(self):
         count = 0
-        try:
-            with open(FILENAME_TARGETS, encoding="utf-8") as file:
-                lines = [line.rstrip() for line in file]
 
-                for i, line in enumerate(lines):
-                    # Skip comments
-                    if line.startswith("#"):
-                        continue
+        # From file
+        targets_files = {
+            FILENAME_TARGETS: "global-targets",
+            f"{self.my_username}-{FILENAME_TARGETS}": "profile-targets"
+        }
 
-                    # Skip already interacted
-                    if "DONE" in line:
-                        continue
+        for file_path, file_desc in targets_files.items():
+            try:
+                with open(file_path, encoding="utf-8") as file:
+                    lines = [line.rstrip() for line in file]
 
-                    count += 1
-        except FileNotFoundError:
-            pass
+                    for i, line in enumerate(lines):
+                        # Skip comments
+                        if line.startswith("#"):
+                            continue
+
+                        # Skip already interacted
+                        if "DONE" in line:
+                            continue
+
+                        count += 1
+            except FileNotFoundError:
+                pass
         return count
 
 
