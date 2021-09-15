@@ -1,14 +1,12 @@
+from abc import ABC
+
 from insomniac.action_runners import *
 from insomniac.utils import *
 
 
-class ActionRunnersManager(object):
-    action_runners = {}
-
+class ActionRunnersManager(ABC):
     def __init__(self):
-        for clazz in get_core_action_runners_classes():
-            instance = clazz()
-            self.action_runners[instance.ACTION_ID] = instance
+        self.action_runners = {}
 
     def get_actions_args(self):
         actions_args = {}
@@ -31,11 +29,20 @@ class ActionRunnersManager(object):
             return None
 
         if len(selected_action_runners) > 1:
-            print_timeless(COLOR_FAIL + "Running Insomniac with two or more actions is not supported yet." + COLOR_ENDC)
+            print_timeless(COLOR_FAIL + "Executing two or more actions is not supported yet." + COLOR_ENDC)
             return None
 
         print(COLOR_BOLD +
-              "Running Insomniac with the \"{0}\" action.".format(selected_action_runners[0].ACTION_ID) +
+              "Executing \"{0}\" action.".format(selected_action_runners[0].ACTION_ID) +
               COLOR_ENDC)
 
         return selected_action_runners[0]
+
+
+class CoreActionRunnersManager(ActionRunnersManager):
+    def __init__(self):
+        super().__init__()
+
+        for clazz in get_core_action_runners_classes():
+            instance = clazz()
+            self.action_runners[instance.ACTION_ID] = instance

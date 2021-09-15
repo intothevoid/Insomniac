@@ -1,7 +1,7 @@
 from enum import unique, Enum
 
 from insomniac.utils import *
-from insomniac.views import ProfileView, FollowersFollowingListView, InstagramView
+from insomniac.views import ProfileView, FollowersFollowingListView, DialogView
 
 EMPTY_LIST_TRESHOLD = 5
 EMPTY_PROFILE_TRESHOLD = 5
@@ -53,7 +53,7 @@ class SoftBanIndicator:
         is_list_empty_from_profiles = list_view.is_list_empty()
         if is_list_empty_from_profiles:
             print(COLOR_FAIL + "List of followers seems to be empty. "
-                               "Counting that as a soft-ban indicator!." + COLOR_ENDC)
+                               "Counting that as a soft-ban indicator!" + COLOR_ENDC)
             self.indications[IndicationType.EMPTY_LISTS]["curr"] += 1
             self.indicate_block()
 
@@ -62,11 +62,11 @@ class SoftBanIndicator:
     @check_softban_feature_flag
     def detect_empty_profile(self, device):
         profile_view = ProfileView(device)
-        followers_count = profile_view.get_followers_count(should_parse=False)
+        followers_count = profile_view.get_followers_count()
         is_profile_empty = followers_count is None
         if is_profile_empty:
             print(COLOR_FAIL + "A profile-page seems to be empty. "
-                               "Counting that as a soft-ban indicator!." + COLOR_ENDC)
+                               "Counting that as a soft-ban indicator!" + COLOR_ENDC)
             self.indications[IndicationType.EMPTY_PROFILES]["curr"] += 1
             self.indicate_block()
 
@@ -74,11 +74,10 @@ class SoftBanIndicator:
 
     @check_softban_feature_flag
     def detect_action_blocked_dialog(self, device):
-        curr_view = InstagramView(device)
-        is_blocked = curr_view.is_block_dialog_present()
+        is_blocked = DialogView(device).is_visible()
         if is_blocked:
             print(COLOR_FAIL + "Probably block dialog is shown. "
-                               "Counting that as a soft-ban indicator!." + COLOR_ENDC)
+                               "Counting that as a soft-ban indicator!" + COLOR_ENDC)
             self.indications[IndicationType.ACTION_BLOCKED_DIALOGS]["curr"] += 1
             self.indicate_block()
 
