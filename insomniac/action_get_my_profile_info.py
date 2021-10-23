@@ -1,7 +1,7 @@
 from insomniac.navigation import switch_to_english
 from insomniac.sleeper import sleeper
 from insomniac.utils import *
-from insomniac.views import TabBarView, ActionBarView, AccountView, UserSwitchFailedException
+from insomniac.views import TabBarView, ActionBarView, UserSwitchFailedException
 
 
 def get_my_profile_info(device, username):
@@ -9,6 +9,8 @@ def get_my_profile_info(device, username):
         profile_view = TabBarView(device).navigate_to_profile()
         sleeper.random_sleep()
 
+        ActionBarView.create_instance(device)
+
         if username is not None:
             if not profile_view.change_to_username(username):
                 print(COLOR_FAIL + f"Couldn't switch user to {username}, abort!" + COLOR_ENDC)
@@ -18,14 +20,11 @@ def get_my_profile_info(device, username):
         print("Refreshing your profile status...")
         profile_view.refresh()
         sleeper.random_sleep()
-
-        ActionBarView.create_instance(device)
-
         username, followers, following = profile_view.get_profile_info(swipe_up_if_needed=True)
     except UserSwitchFailedException as e:
         raise e
     except Exception as e:
-        print(COLOR_FAIL + f"Exception: {e}" + COLOR_ENDC)
+        print(COLOR_FAIL + describe_exception(e) + COLOR_ENDC)
         save_crash(device, e)
         switch_to_english(device)
 
@@ -33,6 +32,8 @@ def get_my_profile_info(device, username):
         profile_view = TabBarView(device).navigate_to_profile()
         sleeper.random_sleep()
 
+        ActionBarView.create_instance(device)
+
         if username is not None:
             if not profile_view.change_to_username(username):
                 print(COLOR_FAIL + f"Couldn't switch user to {username}, abort!" + COLOR_ENDC)
@@ -42,14 +43,10 @@ def get_my_profile_info(device, username):
         print("Refreshing your profile status...")
         profile_view.refresh()
         sleeper.random_sleep()
-
-        ActionBarView.create_instance(device)
-
         username, followers, following = profile_view.get_profile_info(swipe_up_if_needed=True)
 
     report_string = ""
     if username:
-        username = username.strip()
         report_string += "Hello, @" + username + "! "
     if followers is not None:
         report_string += "You have " + str(followers) + " followers"
