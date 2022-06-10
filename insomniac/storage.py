@@ -213,8 +213,8 @@ class InsomniacStorage(Storage):
     def log_comment_action(self, session_id, phase, username, comment, source_type, source_name):
         self.profile.log_comment_action(session_id, phase.value, username, comment, source_type, source_name, insomniac_globals.task_id, insomniac_globals.execution_id)
 
-    def log_direct_message_action(self, session_id, phase, username, message):
-        self.profile.log_direct_message_action(session_id, phase.value, username, message, insomniac_globals.task_id, insomniac_globals.execution_id)
+    def log_direct_message_action(self, session_id, phase, username, message, timestamp=None):
+        self.profile.log_direct_message_action(session_id, phase.value, username, message, insomniac_globals.task_id, insomniac_globals.execution_id, timestamp)
 
     def log_unfollow_action(self, session_id, phase, username):
         self.profile.log_unfollow_action(session_id, phase.value, username, insomniac_globals.task_id, insomniac_globals.execution_id)
@@ -241,15 +241,15 @@ class InsomniacStorage(Storage):
         return self.profile.get_session_count_within_hours(hours)
 
     def log_softban(self):
-        InsomniacStorage._update_profile_status(self.profile, ProfileStatus.SOFT_BAN)
+        InsomniacStorage.update_profile_status(self.profile, ProfileStatus.SOFT_BAN)
 
     @staticmethod
     def log_hardban(username):
         profile = get_ig_profile_by_profile_name(username)
-        InsomniacStorage._update_profile_status(profile, ProfileStatus.HARD_BAN)
+        InsomniacStorage.update_profile_status(profile, ProfileStatus.HARD_BAN)
 
     @staticmethod
-    def _update_profile_status(profile, status):
+    def update_profile_status(profile, status):
         followers_count = 0
         following_count = 0
         latest_profile_info = profile.get_latsest_profile_info()
